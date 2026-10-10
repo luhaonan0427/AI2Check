@@ -1,0 +1,88 @@
+/* 学生端专用样式。
+   共用原子类在 app.css（已全局引入），这里只补学生端特有的布局与组件，
+   并且优先适配手机窄屏——拍照上传是核心场景。 */
+
+/* ---------------------------------------------------------------- 外壳 */
+.stu-sidebar .brand{padding:4px 6px 14px;font-size:19px}
+.stu-topbar-title{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stu-topbar-title h1{max-width:60vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stu-user{display:flex;align-items:center;gap:8px}
+.stu-user .small{max-width:8em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:#4b4e63}
+
+/* 我的课程列表 */
+.stu-course-row:first-of-type{border-top:0}
+.stu-course-row .icon-plate{font-size:17px}
+
+/* ---------------------------------------------------------------- 作业卡片 */
+.stu-assignment{display:flex;flex-direction:column;gap:12px;padding:16px 4px;border-top:1px solid #f0f1f6}
+.stu-assignment:first-of-type{border-top:0;padding-top:4px}
+.stu-assignment-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.stu-assignment-head h3{font-size:15px;color:#252940}
+.stu-meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:5px;font-size:13px;color:#7d8195}
+.stu-meta strong{color:#3f4256;font-weight:650}
+.stu-questions{margin:0;padding:10px 12px;border:1px solid #eef0f6;border-radius:10px;background:#fbfbfe;color:#4b4e63;font-family:inherit;font-size:13px;line-height:1.85;white-space:pre-wrap;word-break:break-word}
+.stu-score-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:14px;color:#3f4256}
+.stu-score-line strong{font-size:17px;color:#24243b}
+
+/* ---------------------------------------------------------------- 拍照上传 */
+.stu-file-input{display:none}
+.stu-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+.stu-thumb{position:relative;aspect-ratio:3/4;border:1px solid #e9eaf1;border-radius:11px;overflow:hidden;background:#fbfbfe}
+.stu-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.stu-thumb-remove{position:absolute;top:4px;right:4px;display:grid;place-items:center;width:26px;height:26px;border:0;border-radius:50%;background:rgba(30,28,52,.66);color:#fff;font-size:15px;line-height:1}
+.stu-thumb-state{position:absolute;left:4px;bottom:4px;padding:1px 6px;font-size:11px}
+.stu-progress{display:flex;flex-direction:column;gap:7px}
+
+/* ---------------------------------------------------------------- 批改结果 */
+.stu-modal{max-width:800px}
+.stu-score-panel{display:flex;flex-direction:column;gap:8px}
+.stu-score{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.stu-score strong{font-size:40px;font-weight:700;line-height:1;color:#24243b}
+.stu-score em{font-style:normal;font-size:14px;color:#8a8da0}
+.stu-quote{display:flex;flex-direction:column;gap:5px;padding:11px 12px;border:1px solid #eef0f6;border-radius:11px;background:#fbfbfe}
+.stu-quote p{font-size:14px;line-height:1.8;color:#3f4256;white-space:pre-wrap}
+.stu-section{display:flex;flex-direction:column;gap:10px}
+.stu-section h3{font-size:16px;font-weight:650;color:#24243b}
+.stu-question{display:flex;flex-direction:column;gap:9px;padding:12px 13px;border:1px solid #eef0f6;border-radius:11px;background:#fff}
+.stu-question-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stu-question-head strong{font-size:14px;color:#252940}
+.stu-lines{display:flex;flex-direction:column;gap:8px}
+.stu-line{display:flex;flex-direction:column;gap:5px;padding:9px 11px;border-left:3px solid #f0c0ba;border-radius:0 9px 9px 0;background:#fdf7f6}
+.stu-line-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:650;color:#3f4256}
+.stu-line-origin{margin:0;font-size:13px;line-height:1.75;color:#5f6276;white-space:pre-wrap;word-break:break-word}
+.stu-line-issue{margin:0;font-size:13px;line-height:1.75;color:#8a4a43}
+.stu-placeholder{box-shadow:0 0 0 3px rgba(240,195,109,.18)}
+.stu-placeholder strong{display:block;margin-bottom:4px;font-size:15px}
+.stu-practice{display:flex;flex-direction:column;gap:9px;padding:12px 13px;border:1px solid #e5e1f7;border-radius:11px;background:#faf9ff}
+.stu-practice-prompt{margin:0;font-size:14px;line-height:1.8;color:#3f4256}
+.stu-hint{border:1px dashed #d9d3f2;border-radius:9px;background:#fff;overflow:hidden}
+.stu-hint button{width:100%;padding:10px 11px;border:0;background:none;text-align:left;font:inherit;font-size:13px;font-weight:600;color:#5b45c4}
+.stu-hint p{margin:0;padding:0 11px 11px;font-size:13px;line-height:1.8;color:#5f6276}
+.stu-expected{display:flex;flex-direction:column;gap:4px;font-size:13px;color:#5f6276}
+.stu-extension{display:flex;flex-direction:column;gap:6px;padding:11px 12px;border:1px solid #eef0f6;border-radius:11px}
+.stu-extension-prompt{margin:0;font-size:14px;line-height:1.8;color:#3f4256}
+.stu-extension-goal{margin:0;font-size:12px;color:#9a9cb0}
+.stu-photos{padding:10px 12px;border:1px solid #eef0f6;border-radius:11px;background:#fbfbfe}
+.stu-photos summary{cursor:pointer;font-size:13px;font-weight:600;color:#5b45c4}
+.stu-photos .stu-thumbs{margin-top:10px}
+
+/* ---------------------------------------------------------------- 窄屏 */
+@media(max-width:760px){
+  /* 侧栏压成一条横向导航 */
+  .stu-sidebar{flex-direction:row;align-items:center;gap:8px;padding:10px 12px}
+  .stu-sidebar .brand{display:none}
+  .stu-sidebar nav{flex:1;min-width:0;flex-direction:row}
+  .stu-sidebar nav a{padding:8px 10px;white-space:nowrap}
+  .stu-sidebar .sidebar-foot{margin:0;padding:0;border-top:0;flex-direction:row;align-items:center;gap:10px}
+  .stu-sidebar .stu-role{display:none}
+  .stu-topbar{min-height:auto;padding:11px 14px}
+  .stu-topbar-title h1{max-width:64vw;font-size:16px}
+  /* 主按钮铺满，方便单手点按 */
+  .stu-actions .primary,.stu-actions .secondary{flex:1}
+  .stu-thumbs{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}
+  .stu-score strong{font-size:34px}
+  /* 弹层占满整屏，底部按钮固定可见 */
+  .stu-modal-mask{padding:0;align-items:stretch}
+  .stu-modal{width:100%;max-width:none;min-height:100dvh;max-height:100dvh;border-radius:0;padding:16px 14px 40px}
+  .stu-modal .modal-foot{position:sticky;bottom:-1px;padding-top:12px;background:#fff}
+}
