@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./workspace.css";
+import "./campus.css";
 
 export const metadata: Metadata = {
   title: "数研 MathFlow · 数学教学工作台",
   description: "数学作业发布、批改审核与学情统计。",
-  other: {
-    "codex-preview": "development",
-  },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

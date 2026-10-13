@@ -1,2 +1,2 @@
-import Workspace from './workspace';
-export default function Home(){return <Workspace/>}
+import Campus from './campus';
+export default function Home(){return <Campus/>}
