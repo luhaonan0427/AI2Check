@@ -101,3 +101,5 @@ export const tutorMessages = sqliteTable('tutor_messages', {
   feedback: text('feedback').notNull(),
   createdAt: text('created_at').notNull(),
 }, (table) => [index('tutor_submission_idx').on(table.submissionId)]);
+
+export * from './campus-schema';

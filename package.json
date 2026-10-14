@@ -1,6 +1,6 @@
 {
   "name": "ai2check-mathflow",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -18,7 +18,10 @@
     "test:ai": "node scripts/test-ai.mjs",
     "typecheck": "tsc --noEmit",
     "test:security": "node scripts/test-security.mjs",
-    "test:pages": "node scripts/test-pages.mjs"
+    "test:campus": "node scripts/test-campus.mjs",
+    "test:campus:http": "node tests/http-smoke.mjs",
+    "test:merge": "node tests/merge-migration.test.mjs",
+    "test:legacy-pages": "node scripts/test-pages.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

@@ -67,7 +67,7 @@ export default defineConfig(async ({ command }) => {
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
-        config: { ...localBindingConfig, ...(command === 'serve' ? { vars: { LOCAL_DEMO: "true", TEACHER_EMAILS: "teacher@sites.test" } } : {}) },
+        config: { ...localBindingConfig, ...(command === 'serve' ? { vars: { LOCAL_DEMO: "true", TEACHER_EMAILS: "teacher@sites.test", ADMIN_EMAIL: "teacher@sites.test" } } : {}) },
       }),
     ],
   };

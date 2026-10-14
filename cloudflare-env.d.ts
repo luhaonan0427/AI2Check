@@ -6,5 +6,6 @@ declare namespace Cloudflare {
     OPENAI_MODEL?: string;
     TEACHER_EMAILS?: string;
     LOCAL_DEMO?: string;
+    ADMIN_EMAIL?: string;
   }
 }

@@ -2,23 +2,23 @@
 import { useCallback, useEffect, useState } from 'react';
 type Feedback = { understood: boolean; feedback: string; nextStep: string };
 type Message = { id: string; answer: string; feedback: string; created_at: string };
-export default function TutorPanel({ submissionId, readOnly = false }: { submissionId: string; readOnly?: boolean }) {
+export default function TutorPanel({ submissionId, readOnly = false, endpoint = '/api/tutor' }: { submissionId: string; readOnly?: boolean; endpoint?: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [answer, setAnswer] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const load = useCallback(async () => {
-    const response = await fetch(`/api/tutor?submissionId=${encodeURIComponent(submissionId)}`, { cache: 'no-store' });
+    const response = await fetch(`${endpoint}?submissionId=${encodeURIComponent(submissionId)}`, { cache: 'no-store' });
     const body = await response.json() as { error?: string; messages: Message[] };
     if (!response.ok) throw new Error(body.error);
     setMessages(body.messages);
-  }, [submissionId]);
+  }, [submissionId, endpoint]);
   useEffect(() => { void load().catch((e: Error) => setError(e.message)); }, [load]);
   async function send() {
     if (busy || !answer.trim()) return;
     setBusy(true); setError('');
     try {
-      const response = await fetch('/api/tutor', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ submissionId, answer }) });
+      const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ submissionId, answer }) });
       const body = await response.json() as { error?: string; feedback: Feedback };
       if (!response.ok) throw new Error(body.error);
       setAnswer(''); await load();

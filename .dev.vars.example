@@ -3,3 +3,6 @@ OPENAI_API_KEY=
 # Set a model available to your account supporting image inputs and structured outputs.
 OPENAI_MODEL=
 TEACHER_EMAILS=teacher@sites.test
+
+# Trusted ChatGPT identity used only to enable the platform owner.
+ADMIN_EMAIL=teacher@sites.test

@@ -42,6 +42,8 @@ export async function getIdentity(): Promise<Identity | null> {
   };
 }
 
+export const getChatGPTUser = getIdentity;
+
 /** 读取身份并确保 users 表里有对应记录。 */
 export async function getCurrentUser(): Promise<User | null> {
   const identity = await getIdentity();

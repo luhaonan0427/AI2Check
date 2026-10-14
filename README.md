@@ -1,106 +1,93 @@
 # AI2Check · 数研 MathFlow
 
-为数学学院设计的作业教学平台：教师发布作业与评分标准，学生拍照提交，模型识别解题过程并逐页逐行给出建议，教师确认成绩，平台汇总多轮平时作业得分。
+两个项目已整合为这一份代码、一个安装目录、一套运行服务与一个统一教学入口。
 
-教师端与学生端分别位于 `/teacher`、`/student`，各自拥有页面、组件和样式，使用同一个服务端与数据库，已经整合成一个网站。学生通过教师提供的课程码接收该课程的作业。
+- `http://localhost:5173/`：独立账号登录、注册及恢复；登录后按服务端身份显示教师、学生或管理员工作台。
+- `/teacher`、`/student` 和原课程链接：进入同一套工作台。
+- `/welcome`：平台介绍。
+- `/demo`：保留原项目的个人试用版，标明虚构示例，与正式班级数据分开。
 
-## 已实现
+## 合并后的功能
 
-- 教师：创建课程、课程码邀请、作业题目与评分标准、满分和权重设置、原图对照审核、改分定稿、分类筛选、逐轮成绩表、加权平时分和CSV导出。
-- 学生：加入课程、最多5页照片上传、查看作业与提交状态、教师定稿反馈、AI逐题评分和逐行定位、原图标记、分层订正提示、订正问答、巩固/提高/拓展题。
-- AI：服务端 OpenAI Responses API，图片输入与严格JSON结构；校验满分和得分之和、扣分、页码与定位框；调用失败保留照片与待批改记录，支持重试或教师手动审核。
-- 权限：角色由服务端授权；学生只能读自己的提交、原图和订正，教师只能审核自己课程。
+教师创建课程和教学班，分享10位班级码，审核学生入班，再发布题目、评分标准、截止时间、满分、权重及补交规则。教师身份由管理员审核；注册不能自行获得教师或管理员权限。
 
-**真实AI功能需要服务端密钥与模型配置。** 未配置时不会生成演示分数或虚构行号。学生仍可上传，教师仍可手动审核，成绩统计正常可用。
+学生使用独立账号，无需ChatGPT账号。每份作业可提交文字或最多10张照片，每张8MB内；可查看教师反馈、退回订正、再次提交及完整历史。
 
-## 本地运行（Windows）
+配置OpenAI服务端密钥与模型后，可获得逐题建议分、页码与行号定位、原图错误框、订正提示、辅导问答以及巩固/提高/拓展题。AI照片输入总大小不超过16MB；文字作答也可批改。未配置或失败时保留提交，支持重试与人工审核。AI建议分与教师定稿分分开存储，正式统计只使用已定稿分。
 
-需要 Node.js >=22.13。当前项目已安装依赖并初始化本地数据库。启动：
+全对为满分、全错为零分、其余为部分正确。平时分先按各轮满分归一化，再按权重汇总；未提交、待批改和退回订正不自动记零，阶段均分与批改进度一起显示。支持CSV导出。
+
+## 本地启动
+
+Node.js >=22.13。当前目录依赖和数据库已就绪：
 
 ```powershell
 node scripts/run-framework.mjs dev
 ```
 
-打开 `http://localhost:5173/welcome`，欢迎页提供独立的本地教师、学生体验入口。这些模拟身份仅限本机开发，不包含在生产构建的登录流程中。
-
-新电脑首次克隆时先安装依赖：
+新电脑先安装、启动，再在另一终端初始化数据库：
 
 ```powershell
 npm run install:ci
-```
-
-如果这台Windows电脑的 `npm` 命令路径异常，使用：
-
-```powershell
-node 'C:/Program Files/nodejs/node_modules/npm/bin/npm-cli.js' run install:ci
-```
-
-首次运行在另一个终端执行：
-
-```powershell
+node scripts/run-framework.mjs dev
+# 在另一终端运行
 node scripts/setup-local.mjs
 ```
 
-初始化会触发本地数据库创建，再依次应用 `drizzle/` 的迁移；已有数据库保留原数据，不重复应用迁移。本地数据库和上传照片保存在忽略的 `.wrangler/`，不会进入Git。
+本机若npm命令路径异常，使用 `node 'C:/Program Files/nodejs/node_modules/npm/bin/npm-cli.js' run install:ci`。
 
-## 配置真实图片批改和订正问答
+## 账号与模型配置
 
-复制 `.dev.vars.example` 为 `.dev.vars`，填写：
+复制 `.dev.vars.example` 为 `.dev.vars`，配置 `OPENAI_API_KEY`、账户可用且支持图片和结构化输出的 `OPENAI_MODEL`，然后重启。密钥只由服务端读取，该文件已被Git排除。调用路径沿用 [图片输入](https://developers.openai.com/api/docs/guides/images-vision) 和 [结构化输出](https://developers.openai.com/api/docs/guides/structured-outputs) 官方接口。
 
-```dotenv
-OPENAI_API_KEY=你的服务端API密钥
-OPENAI_MODEL=账户可用且支持图片输入和结构化输出的模型名称
-TEACHER_EMAILS=teacher@sites.test
+普通师生在首页注册。教师在“账号设置”申请，管理员核实后通过。`ADMIN_EMAIL` 指定可信ChatGPT身份的所有者邮箱；网站所有者在登录页“网站所有者入口”验证身份，再启用管理账号。正式环境必须填写真实所有者邮箱，本地默认允许模拟 `teacher@sites.test` 身份。
+
+原AI2Check账号的课程和成绩已迁移。在登录页展开“网站所有者入口”，先验证原ChatGPT身份，再点“接续已迁移的原账号与课程”。本地教师身份验证地址：`/signin-with-chatgpt?as=teacher&return_to=/`，学生为 `as=student_a`。该模拟身份仅限开发。
+
+源项目已有的独立账号及密码哈希已在本机导入，使用原用户名和密码登录。原登录会话未导入，需重新登录。恢复码仅在注册或恢复时显示一次，服务端不存明文密码和恢复码。
+
+本地库包含开发和验收测试数据，预览中的示例姓名及分数不代表真实学生成绩。
+
+## 数据合并与维护
+
+来源为 `C:/Users/HP/Desktop/自主批改作业/mathflow`，原目录保持原状。相同公共组件去重；账号、班级、审批、提交历史与补交流程接入原AI2Check的AI批改和订正能力。详细清单见 [项目合并报告](docs/项目合并报告.md)。
+
+两套旧数据库存在同名但结构不同的表。新平台使用 `campus_*` 表，原表作为兼容与历史数据保留；`0003`至`0005`是增量迁移。原AI2Check课程、成员、作业、定稿分、AI载荷及订正记录已复制到统一模型，原图通过存储路径映射读取。新操作统一使用 `/api/account`、`/api/campus` 及其子接口。
+
+源项目的本地独立账号、课程、班级、成员、作业、提交及历史、照片也已导入。导入前的数据库备份在忽略的 `.sites-runtime/backups/`；本地数据库、照片、会话、缓存和密钥不会进入Git。
+
+再次导入旧本地项目需先停止本地服务，再运行：
+
+```powershell
+node scripts/import-campus-local.mjs 'C:/Users/HP/Desktop/自主批改作业/mathflow'
 ```
 
-修改后重启开发服务。密钥只由服务端读取，`.dev.vars` 已被Git排除，不要在网页、聊天或源码里填写密钥。本机网络需能连接 `https://api.openai.com/v1/responses`；API调用的账户权限和费用由使用的服务账号决定。
+导入只读源目录、先备份目标、遇到同编号且内容不同的记录会停止，不覆盖新改动；会话和限流计数不导入。该脚本针对本地D1/R2，不能用于线上数据库。
 
-批改用学生照片、题目和评分标准；问答用本份作业的反馈与订正历史。请求设置 `store:false`，不把学生姓名、邮箱和学号作为批改提示发送。图片自身如果包含身份信息也会作为图片输入发送。
-
-教师账号首次建档时按 `TEACHER_EMAILS` 授权，逗号分隔；其他账号默认为学生。上线时应配置真实教师邮箱。既有账号的角色保存在 `users` 表，修改白名单不会自动变更已有角色。
-
-使用的官方接口文档：[图片输入](https://developers.openai.com/api/docs/guides/images-vision)、[结构化输出](https://developers.openai.com/api/docs/guides/structured-outputs)。
-
-## 成绩规则
-
-- 满分为全对，零分为全错，其余为部分正确。
-- 最终成绩只采用教师已定稿的分数；AI建议不会自行成为正式成绩。
-- 平时成绩 = `Σ(定稿分 / 当轮满分 × 100 × 权重) / Σ已定稿轮次权重`。
-- 例如88/100权重1、20/40权重2：`(88 + 50×2)/3 = 62.67`。
-- 未提交和未审核不自动记零，尚有缺项时标为“暂定”；缺交记零需由教师按教学规则处理。
-- 重新提交会替换本轮照片与评分、清空本轮订正历史并重新进入审核流程。
-
-## 验证与构建
+## 验证
 
 ```powershell
 node node_modules/typescript/bin/tsc --noEmit
+node scripts/test-campus.mjs
+node tests/merge-migration.test.mjs
 node scripts/test-ai.mjs
-node scripts/test-workflow.mjs
-node scripts/test-security.mjs
+node tests/http-smoke.mjs
 node scripts/run-framework.mjs build
 ```
 
-工作流和权限测试需要本地服务，使用模拟账号写入本地测试数据。工作流测试在**没有配置真实模型**的开发环境运行，验证未配置AI时的保存、手动审核和多轮统计。AI契约测试使用合成模型响应，验证接口与校验逻辑，不调用付费服务，不证明手写识别准确率。
+HTTP测试需要启动本地服务，创建独立的本地测试账号及作业。其余测试使用内存SQLite或合成AI响应，不调用付费模型。原 `scripts/test-workflow.mjs`、`test-security.mjs` 和 `test-pages.mjs` 保留为旧接口/旧界面的回归参考，不是新版页面验收脚本。GitHub检查包含类型检查、账号班级测试、迁移测试、AI契约和生产构建。
 
-## 维护位置
+## 主要代码
 
 | 功能 | 位置 |
 | --- | --- |
-| 教师页面与组件 | `app/teacher/` |
-| 学生页面与组件 | `app/student/` |
-| 原图与问答共享组件 | `app/shared/` |
-| 真实批改与输出校验 | `app/grader.ts`、`app/ai/` |
-| 提交、问答、课程与统计接口 | `app/api/` |
-| 数据访问与成绩规则 | `db/store.ts` |
-| 数据库迁移 | `drizzle/` |
-| 接口与迁移说明 | `docs/` |
+| 统一账号及师生工作台 | `app/campus.tsx`、`app/campus.css` |
+| 身份、班级、审批与提交历史 | `lib/campus.ts`、`lib/campus-service.ts` |
+| 图片批改和评分校验 | `app/grader.ts`、`app/ai/`、`lib/campus-ai.ts` |
+| 原图反馈与订正问答 | `app/shared/`、`app/api/campus/tutor/` |
+| 统一数据库结构 | `db/campus-schema.ts`、`drizzle/` |
+| 原个人试用版 | `app/demo/`、`app/workspace.tsx`、`db/demo-store.ts` |
 
-## 当前边界与部署
+目前未配置真实模型，未实测手写识别精度。服务端接口、权限、迁移与本地流程已验证。正式使用仍需用教师已批改的作业检验识别、定位及评分偏差。
 
-目前完成的是新Git仓库中的可运行版本与本地预览。GitHub存放源码，推送GitHub不会自动发布网站。保留旧Sites托管声明供之后部署兼容使用，本次没有修改旧站的线上数据。
-
-生产构建目标是 Cloudflare Worker + D1 + R2。现有登录依赖Sites可信代理注入的ChatGPT身份；若换用独立托管，需要配置可信身份代理或学校SSO，不能把开发服务直接公开。正式平台的访问策略、教师授权和API密钥需要与学校使用环境一起配置。
-
-行号按上传页序、每页从上到下计数。手写数学、复杂排版和模糊照片可能导致识别或框定位偏差；不确定结果会提醒教师核查。正式使用前需配置模型并用教师已批改的作业验证识别和评分。当前未实现批改任务队列、批量通知、学生名单导入或原生App。
-
-旧源目录保持原状；未迁移旧本地数据库和照片。详见 [迁移记录](docs/迁移记录.md)。
+本次为本地项目与Git仓库合并，未修改旧站线上数据。两个旧项目曾沿用同一Sites项目ID但数据库迁移谱系不同；上线前需核对线上真实表结构和已应用迁移，不能将本地合并通过视作线上已更新。

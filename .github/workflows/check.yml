@@ -12,4 +12,6 @@ jobs:
       - run: npm ci --include=dev --include=optional --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run test:ai
+      - run: npm run test:campus
+      - run: node tests/merge-migration.test.mjs
       - run: npm run build

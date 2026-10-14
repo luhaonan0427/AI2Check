@@ -1,0 +1,41 @@
+// Disposable accounts and records in localhost only. Never point this at production.
+import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
+import {readdirSync} from 'node:fs';
+const base='http://localhost:5173';
+const suffix=Date.now().toString(36),password='Local-test-only-2026!';
+async function request(path,body,cookie='',expected=200){const r=await fetch(base+path,{method:body?'POST':'GET',headers:{Origin:base,...(body?{'Content-Type':'application/json'}:{}),Cookie:cookie},body:body?JSON.stringify(body):undefined});const d=await r.json();assert.equal(r.status,expected,JSON.stringify(d));return {d,cookie:r.headers.get('set-cookie')?.split(';')[0]||cookie}}
+async function register(label){const a=await request('/api/account',{action:'register',username:'qa_'+label+'_'+suffix,password,name:'测试'+label,number:'QA-'+label});const me=await request('/api/account',null,a.cookie);assert(!JSON.stringify(me.d).includes('password'));return {...a,user:me.d.user}}
+const teacher=await register('teacher'),student=await register('student'),other=await register('other');
+const dbPath='.wrangler/state/v3/d1/miniflare-D1DatabaseObject';const candidates=readdirSync(dbPath).filter(x=>x.endsWith('.sqlite')&&!x.startsWith('metadata'));assert.equal(candidates.length,1);const qaDb=new DatabaseSync(dbPath+'/'+candidates[0]);qaDb.prepare("UPDATE campus_accounts SET role='teacher' WHERE id=?").run(teacher.user.id);qaDb.close();
+const act=(actor,b,code=200)=>request('/api/campus',b,actor.cookie,code);
+await act(student,{action:'createCourse',title:'Forbidden',term:'T',description:''},403);
+await act(teacher,{action:'createCourse',title:'数学分析 · 本地验收',term:'2026 秋季',description:'仅用于本地端到端测试，不会出现在正式网站。'});
+let snap=(await request('/api/campus',null,teacher.cookie)).d;
+await act(teacher,{action:'createClass',courseId:snap.courses[0].id,name:'测试教学班'});
+snap=(await request('/api/campus',null,teacher.cookie)).d;const cl=snap.classes[0];
+await act(student,{action:'join',code:cl.code});
+await act(teacher,{action:'enrollment',enrollmentId:cl.id+':'+student.user.id,approve:true});
+await act(teacher,{action:'createAssignment',classId:cl.id,title:'第一轮：极限与连续',body:'证明函数在指定点的连续性，请逐行书写。',rubric:'教师答案测试',deadline:Date.now()+86400000,maxScore:100,weight:2,allowLate:false});
+snap=(await request('/api/campus',null,student.cookie)).d;const a=snap.assignments[0];assert.equal(a.rubric,undefined);
+const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5ioAAAAASUVORK5CYII=','base64');
+const upload=await fetch(base+'/api/campus/files?assignment='+a.id,{method:'POST',headers:{Origin:base,Cookie:student.cookie,'Content-Type':'image/png'},body:png});assert.equal(upload.status,200,await upload.clone().text());const file=(await upload.json()).id;
+assert.equal((await fetch(base+'/api/campus/files?id='+file,{headers:{Cookie:other.cookie}})).status,403);
+assert.equal((await fetch(base+'/api/campus/files?id='+file,{headers:{Cookie:teacher.cookie}})).status,403,'Unsubmitted image should remain private');
+await act(student,{action:'submit',assignmentId:a.id,answer:'测试解答',files:[file],version:0});
+assert.equal((await fetch(base+'/api/campus/files?id='+file,{headers:{Cookie:teacher.cookie}})).status,200);
+snap=(await request('/api/campus',null,teacher.cookie)).d;const s=snap.submissions[0];
+await act(teacher,{action:'grade',submissionId:s.id,version:1,reviewed:null,score:85,feedback:'第 3 行需要补充论证。',returned:true});
+let hist=(await request('/api/campus?history='+s.id,null,student.cookie)).d.history;assert.equal(hist.length,2);
+await act(student,{action:'submit',assignmentId:a.id,answer:'已补充第三行证明',files:[file],version:1});
+await act(teacher,{action:'grade',submissionId:s.id,version:1,reviewed:null,score:90,feedback:'过期评分',returned:false},409);
+await act(teacher,{action:'grade',submissionId:s.id,version:2,reviewed:null,score:100,feedback:'论证完整，全部正确。',returned:false});
+assert.equal((await request('/api/campus',null,student.cookie)).d.submissions[0].score,100);
+assert.equal((await request('/api/campus',null,other.cookie)).d.submissions.length,0);
+await request('/api/campus',null,'',401);
+const csrf=await fetch(base+'/api/campus',{method:'POST',headers:{Origin:'https://evil.example',Cookie:teacher.cookie,'Content-Type':'application/json'},body:'{}'});assert.equal(csrf.status,403);
+await request('/api/account',{action:'logout'},other.cookie);await request('/api/campus',null,other.cookie,401);
+const reset=await request('/api/account',{action:'recover',username:other.user.username,password:'New-local-test-2026!',recovery:other.d.recovery});assert(reset.d.recovery!==other.d.recovery);
+await request('/api/account',{action:'login',username:other.user.username,password},'',401);
+await request('/api/account',{action:'login',username:other.user.username,password:'New-local-test-2026!'});
+console.log('PASS HTTP: registration, real D1/R2, class admission, photo ownership, grade history, correction, stale grade, CSRF, logout and recovery.');
