@@ -5,8 +5,8 @@ export function campusDatabase(db:D1Database):D1Database {
  return new Proxy(db,{get(target,key){if(key==='prepare')return(sql:string)=>target.prepare(sql.replace(tables,'campus_$1'));const value=Reflect.get(target,key);return typeof value==='function'?value.bind(target):value}});
 }
 export class AppError extends Error {constructor(message:string,public status=400){super(message)}}
-export type User={id:string;username:string;name:string;number:string;role:string;teacher_request:string};
-export const fields='id,username,name,number,role,teacher_request';
+export type User={id:string;username:string;name:string;number:string;role:string;teacher_request:string;must_change_password?:number};
+export const fields='id,username,name,number,role,teacher_request,must_change_password';
 export const now=()=>Date.now();
 export const id=()=>crypto.randomUUID();
 export const token=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');
@@ -34,7 +34,7 @@ export async function readJSON(req:Request){
 export function json(v:unknown,status=200,headers:Record<string,string>={}){return Response.json(v,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}})}
 export function failure(e:unknown){if(e instanceof AppError)return json({error:e.message},e.status);if(e instanceof z.ZodError)return json({error:e.errors[0]?.message||'请检查输入'},400);console.error('Campus request failed',e);return json({error:'服务暂时不可用，请稍后重试'},503)}
 export async function currentUser(db:D1Database,req:Request){const value=req.headers.get('cookie')?.split(';').map(s=>s.trim()).find(s=>s.startsWith('mf_session='))?.slice(11);if(!value||!/^[a-f0-9]{64}$/.test(value))return null;return one<User>(db,`SELECT ${fields.split(',').map(s=>'a.'+s).join(',')} FROM accounts a JOIN sessions s ON a.id=s.user_id WHERE s.token=? AND s.expires>?`,await digest(value),now())}
-export async function mustUser(db:D1Database,req:Request){const u=await currentUser(db,req);if(!u)throw new AppError('请先登录',401);return u}
+export async function mustUser(db:D1Database,req:Request){const u=await currentUser(db,req);if(!u)throw new AppError('请先登录',401);if(u.must_change_password)throw new AppError('请先修改初始密码',403);return u}
 export function cookie(req:Request,t:string,maxAge=604800){return `mf_session=${t}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${new URL(req.url).protocol==='https:'?'; Secure':''}`}
 export async function newSession(db:D1Database,userId:string,req:Request){const t=token();await run(db,'INSERT INTO sessions(token,user_id,expires) VALUES(?,?,?)',await digest(t),userId,now()+604800000);await run(db,'DELETE FROM sessions WHERE expires<?',now());return cookie(req,t)}
 export async function managedClass(db:D1Database,user:User,classId:string){const c=await one<{id:string;course_id:string;owner:string;name:string}>(db,'SELECT cl.*,c.owner FROM classes cl JOIN courses c ON cl.course_id=c.id WHERE cl.id=?',classId);if(!c||(c.owner!==user.id&&user.role!=='admin'))throw new AppError('无权管理该班级',403);return c}

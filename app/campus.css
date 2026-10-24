@@ -6,3 +6,5 @@
 
 /* Keep small supporting text readable on classroom and mobile displays. */
 .campus .cm-field>span,.campus .cm-help,.campus .cm-heading p,.campus .cm-auth-card>p,.campus .cm-auth-links button,.campus .cm-owner,.campus .cm-card-heading p,.campus .cm-assignment p,.campus .cm-assignment small,.campus .cm-table-wrap td,.campus .cm-table-wrap small,.campus .cm-course-info>p,.campus .cm-callout p,.campus .cm-feedback p,.campus .cm-check,.campus .cm-row>span{color:#766b85}.campus .cm-empty p,.campus .cm-section-heading>span,.campus .cm-stats p,.campus .cm-stats>div>span,.campus .cm-course-info footer,.campus .cm-detail-title p,.campus .cm-upload span{color:#857990}.campus .cm-history p,.campus .cm-history a,.campus .cm-prose{color:#756280}
+
+.cm-math {line-height:1.9; overflow-wrap:anywhere} .cm-math .katex-display {overflow-x:auto;overflow-y:hidden;padding:.4rem 0} .cm-math pre {white-space:pre-wrap;background:#f5f4fa;padding:16px;border-radius:12px} .cm-math ul,.cm-math ol {padding-left:1.6em} .cm-portals {margin:16px 0} .cm-math img {max-width:100%}
