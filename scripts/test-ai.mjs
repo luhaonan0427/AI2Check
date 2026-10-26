@@ -58,5 +58,28 @@ try {
   await assert.rejects(() => gradeSubmission(input), (e) => e.status === 503);
   assert.equal(calls, before);
   console.log('✓ categories, rate limits, incomplete/refused output and missing configuration');
+  globalThis.testEnv.OPENAI_API_KEY='synthetic-openai-key';
+  globalThis.testEnv.DEEPSEEK_API_KEY='synthetic-deepseek-key';
+  globalThis.testEnv.AI_PROVIDER='deepseek';
+  globalThis.testEnv.DEEPSEEK_MODEL='deepseek-flash';
+  let lastURL,authorization;
+  globalThis.fetch=async(url,options)=>{calls++;lastURL=url;authorization=options.headers.Authorization;lastRequest=JSON.parse(options.body);return Response.json({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(output)}]}]})};
+  const ds=await gradeSubmission(input);
+  assert.equal(lastURL,'https://api.deepseek.com/responses');
+  assert.equal(authorization,'Bearer synthetic-deepseek-key');
+  assert.equal(ds.source,'deepseek:deepseek-flash');
+  assert.equal(lastRequest.store,undefined);assert.equal(lastRequest.reasoning.effort,'high');assert.equal(lastRequest.text.format.strict,true);
+  globalThis.testEnv.DEEPSEEK_MODEL='deepseek-v4-pro';
+  const imageCalls=calls;
+  await assert.rejects(()=>gradeSubmission(input),/不支持作业照片/);assert.equal(calls,imageCalls);
+  await gradeSubmission({...input,files:[],answer:'x=1'});
+  globalThis.testEnv.DEEPSEEK_API_KEY='';
+  const missingCalls=calls;await assert.rejects(()=>gradeSubmission({...input,files:[],answer:'x=1'}),/尚未配置/);assert.equal(calls,missingCalls);
+  globalThis.testEnv.AI_PROVIDER='invalid';
+  await assert.rejects(()=>gradeSubmission(input),/配置无效/);assert.equal(calls,missingCalls);
+  globalThis.testEnv.AI_PROVIDER='deepseek';globalThis.testEnv.DEEPSEEK_API_KEY='synthetic-deepseek-key';globalThis.testEnv.DEEPSEEK_MODEL='deepseek-flash';
+  globalThis.fetch=async()=>new Response('',{status:402});
+  await assert.rejects(()=>gradeSubmission(input),/余额不足/);
+  console.log('✓ DeepSeek endpoint/key isolation, structured image output, text-only model guard, no silent provider fallback and insufficient-balance errors');
   console.log('PASS: AI contract (synthetic responses; live vision accuracy not evaluated)');
 } finally { globalThis.fetch = sourceFetch; delete globalThis.testEnv; }

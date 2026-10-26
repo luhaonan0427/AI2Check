@@ -1,4 +1,4 @@
-import { env } from 'cloudflare:workers';
+import {aiConfig} from './ai/config';
 import { classify, type Grade } from './domain';
 import { requestStructured } from './ai/client';
 import { gradeSchema, validateGrade } from './ai/schema';
@@ -13,7 +13,7 @@ export type GradeInput = {
 };
 export const MAX_GRADING_IMAGE_BYTES = 16 * 1024 * 1024;
 
-export function graderSource() { return env.OPENAI_API_KEY && env.OPENAI_MODEL ? `openai:${env.OPENAI_MODEL}` : 'unconfigured'; }
+export function graderSource() { const c=aiConfig();return c.configured?`${c.provider}:${c.model}`:'unconfigured'; }
 
 function dataUrl(file: GradeInput['files'][number]): string {
   return `data:${file.contentType};base64,${Buffer.from(file.bytes).toString('base64')}`;

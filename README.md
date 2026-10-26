@@ -1,3 +1,13 @@
+## DeepSeek 本地接入
+
+本地 `.dev.vars` 设置 `AI_PROVIDER=deepseek`、`DEEPSEEK_API_KEY` 和 `DEEPSEEK_MODEL=deepseek-flash`。密钥只在服务端读取，该文件已被 Git 忽略；勿将真实密钥放入示例、源码或浏览器。更换密钥后重启本地服务。也可选择 `AI_PROVIDER=openai` 并填写原有 OpenAI 配置。服务商显式选择后不会自动使用另一家的密钥。
+
+通过 DeepSeek 官方 `https://api.deepseek.com/responses` 接入参考解答、文字/图片批改和订正问答；保留 JSON 结构校验、分数扣分一致性校验和教师审核。当前 `deepseek-flash` 支持图片，`deepseek-v4-pro` 配置只开放文字请求，图片请求会明确拒绝。模型能力以官方当前文档为准：https://api-docs.deepseek.com/guides/responses_api/ 。
+
+2026-10-26 已完成真实小规模文字与图片调用：虚构算式 `2+2=5` 被批为 0/10 并返回页码/行号。该结果仅验证集成，不代表手写识别或复杂数学批改准确率。账户余额不足、密钥失效或网络失败时不会生成假分数。
+
+`node scripts/test-ai.mjs` 使用模拟响应、不消耗 API 额度；`node scripts/test-deepseek-live.mjs` 会向 DeepSeek 发送两次真实请求，仅使用仓库内的虚构算术图片，不含学生数据，会消耗少量 API 额度。
+
 ## 2026-10-24 班级与学生名单流程
 
 - 学生入口 `/student`，教师入口 `/teacher`，身份由服务器核验；教师注册后由管理员审核。
