@@ -35,7 +35,7 @@ const localBindingConfig = {
     : [],
 };
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command }) => {
   // Use Miniflare's local Request.cf placeholder unless fetching is requested.
   process.env.CLOUDFLARE_CF_FETCH_ENABLED ??= "false";
   process.env.WRANGLER_SEND_METRICS ??= "false";
@@ -53,7 +53,13 @@ export default defineConfig(async () => {
   return {
     server: {
       ...(managedLinux ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] } : {}),
-      ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),
+      // 编辑器保存脚本、浏览器 profile 等会在项目里留下临时目录；
+      // Windows 上 watch 这些文件会抛 EBUSY 并击穿整个开发服务，因此忽略
+      // 任意层级的点目录（.browser-tmp、*.tmpdir 等）。
+      watch: {
+        ...(isCodexSeatbeltSandbox ? { useFsEvents: false, usePolling: true } : {}),
+        ignored: ['**/.*/**', '**/*.tmpdir/**'],
+      },
     },
     plugins: [
       vinext(),
@@ -61,7 +67,7 @@ export default defineConfig(async () => {
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
-        config: localBindingConfig,
+        config: { ...localBindingConfig, ...(command === 'serve' ? { vars: { LOCAL_DEMO: "true", TEACHER_EMAILS: "teacher@sites.test", ADMIN_EMAIL: "teacher@sites.test" } } : {}) },
       }),
     ],
   };

@@ -9,6 +9,44 @@ const localUserId = "local_seedy";
 const localEmail = "seedy@sites.test";
 const localFullName = "Seedy";
 const localCookieName = "__sites_local_auth";
+
+// 开发用多身份：本地预览要能同时扮演教师和多个学生，
+// 否则无法验证「教师发作业 → 学生提交 → 教师审核」这条链路。
+// 仅本地生效；生产环境由平台注入真实身份头，这里不参与。
+// 注意：这些值会写进 HTTP 请求头，必须是 ASCII，
+// 中文姓名要靠学生在选课时填写或以后的名单导入。
+const localIdentities: Record<
+  string,
+  { id: string; email: string; fullName: string }
+> = {
+  local_seedy: { id: localUserId, email: localEmail, fullName: localFullName },
+  teacher: {
+    id: "local_teacher",
+    email: "teacher@sites.test",
+    fullName: "Teacher Lin",
+  },
+  student_a: {
+    id: "local_student_a",
+    email: "student.a@sites.test",
+    fullName: "Student A",
+  },
+  student_b: {
+    id: "local_student_b",
+    email: "student.b@sites.test",
+    fullName: "Student B",
+  },
+  student_c: {
+    id: "local_student_c",
+    email: "student.c@sites.test",
+    fullName: "Student C",
+  },
+};
+
+function resolveLocalIdentity(value: string | null) {
+  const key = value && localIdentities[value] ? value : "local_seedy";
+  return localIdentities[key];
+}
+
 const localHosts = new Set(["localhost", "127.0.0.1", "::1"]);
 const localAddresses = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 const authPaths = new Set([
@@ -105,13 +143,14 @@ export function sites({ mockAuth = true } = {}): Plugin {
         const signIn = url.pathname === "/signin-with-chatgpt";
         const signOut = url.pathname === "/signout-with-chatgpt";
         if (!signIn && !signOut) {
-          if (signInCookies.length === 1 && signInCookies[0] === "1") {
-            setHeader(request, "oai-authenticated-user-id", localUserId);
-            setHeader(request, "oai-authenticated-user-email", localEmail);
+          if (signInCookies.length === 1 && localIdentities[signInCookies[0]]) {
+            const identity = localIdentities[signInCookies[0]];
+            setHeader(request, "oai-authenticated-user-id", identity.id);
+            setHeader(request, "oai-authenticated-user-email", identity.email);
             setHeader(
               request,
               "oai-authenticated-user-full-name",
-              localFullName,
+              identity.fullName,
             );
             setHeader(
               request,
@@ -157,13 +196,19 @@ export function sites({ mockAuth = true } = {}): Plugin {
 
         response.statusCode = request.method === "POST" ? 303 : 302;
         response.setHeader("Cache-Control", "private, no-store");
+        // ?as=teacher / ?as=student_a 选择本地身份，默认保持原来的 local_seedy。
+        const requestedIdentity = url.searchParams.get("as");
+        const signInKey =
+          requestedIdentity && localIdentities[requestedIdentity]
+            ? requestedIdentity
+            : "local_seedy";
         response.setHeader(
           "Location",
           safeReturn(url.searchParams.get("return_to")),
         );
         response.setHeader(
           "Set-Cookie",
-          `${localCookieName}=${signIn ? "1" : ""}; Path=/; ${
+          `${localCookieName}=${signIn ? signInKey : ""}; Path=/; ${
             signOut ? "Max-Age=0; " : ""
           }HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`,
         );

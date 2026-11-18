@@ -1,0 +1,80 @@
+/* 教师端专用样式。
+   共用原子类在 app/app.css，这里只补充教师端独有的部分，不改动共用样式表。 */
+
+/* 占位批改提示：必须足够醒目，避免教师误以为是真实模型的评分。 */
+.placeholder-notice{border-left:5px solid #e0a72b;background:#fff7e2;color:#6b5410;font-weight:500}
+.placeholder-notice strong{display:block;font-size:14px;color:#8a5b00;margin-bottom:3px}
+.placeholder-flag{display:block;margin-top:5px;background:#fdf0e3;color:#a9631b;border-radius:6px;padding:2px 7px;font-size:12px;font-weight:650}
+
+/* 操作成功提示 */
+.ok-text{font-size:13px;color:#1f7a4d;background:#e6f6ee;border:1px solid #cbe9db;border-radius:9px;padding:11px 13px;line-height:1.7}
+
+/* 空状态内的提示行 */
+.empty .small{display:block}
+
+/* 课程卡片与课程码 */
+.course-card{border:1px solid #e9eaf1;border-radius:12px;padding:16px 18px;background:#fff;display:flex;flex-direction:column;gap:12px}
+.course-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.copy-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.course-code{font-family:"Courier New",monospace;font-size:22px;letter-spacing:4px;font-weight:700;color:#5b45c4;background:#f4f1fe;border:1px dashed #cfc3f2;border-radius:9px;padding:6px 14px}
+
+/* 筛选区 */
+.filters{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.filters .field{min-width:190px;max-width:320px}
+
+/* 作业列表 */
+.assignment-row{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;padding:14px 2px;border-top:1px solid #f0f1f6}
+.assignment-row:first-child{border-top:0}
+.assignment-body{flex:1;min-width:220px}
+.assignment-body details{margin-top:8px}
+.assignment-body summary{cursor:pointer;font-size:13px;color:#5b45c4;font-weight:600}
+.assignment-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.plain-text{white-space:pre-wrap;font-size:13px;color:#5f6276;background:#fbfbfe;border:1px solid #eef0f6;border-radius:9px;padding:10px 12px;margin-top:8px;line-height:1.75}
+
+/* 学生名单 */
+.roster{margin-bottom:14px}
+.roster summary{cursor:pointer;font-size:13px;color:#5b45c4;font-weight:600}
+.roster ul{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}
+.roster li{font-size:13px;color:#5f6276;border:1px solid #f0f1f6;border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;gap:8px}
+
+/* 审核弹层 */
+.review-split{margin-top:4px}
+.block-title{font-size:14px;color:#24243b;font-weight:650;margin-bottom:8px}
+.answer-images{display:flex;flex-direction:column;gap:12px}
+.answer-images figure{margin:0;display:flex;flex-direction:column;gap:5px}
+.answer-images a{display:block}
+.answer-images img{width:100%;height:auto;border:1px solid #e9eaf1;border-radius:10px;background:#fbfbfe;display:block}
+.grade-summary{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.grade-summary strong{font-size:20px;color:#24243b}
+
+/* 逐题 / 逐行 */
+.question-card{border:1px solid #eef0f6;border-radius:11px;padding:12px 14px;background:#fcfcfe;display:flex;flex-direction:column;gap:8px}
+.question-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.question-score{font-size:13px;color:#63667c}
+.line-wrap{margin-top:2px}
+.line-wrap table.data{min-width:420px}
+.line-table td{vertical-align:top}
+.line-table td.line-no{white-space:nowrap;font-weight:650;color:#4b4e63;width:104px}
+.line-table tr.line-first td{background:#fff7e8}
+.line-text{font-family:"Courier New",monospace;font-size:12.5px;background:#f4f5f9;border-radius:6px;padding:2px 6px;display:inline-block;word-break:break-all}
+.line-flag{margin-top:4px}
+.hint-list{margin:0;padding-left:18px;font-size:13px;color:#5f6276;line-height:1.8}
+.extension-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.review-form{border-top:1px solid #eef0f6;padding-top:16px;margin-top:16px}
+.review-form input[type=number]{max-width:150px}
+
+/* 统计表 */
+.stats-table th{white-space:normal;vertical-align:top;min-width:132px}
+.stats-table .th-sub{display:block;font-weight:500;color:#9a9cb0;font-size:11px;letter-spacing:0;margin-top:3px}
+.stats-table td{vertical-align:top}
+.stats-table td .block{margin-top:4px}
+.muted-strong{color:#8a8da0;font-weight:650}
+.stat-bar{margin-top:6px;min-width:110px}
+.progress-cell{display:flex;flex-direction:column;gap:6px;min-width:130px}
+
+@media(max-width:760px){
+  .filters .field{min-width:100%;max-width:none}
+  .course-code{font-size:19px;letter-spacing:3px}
+  .modal{padding:18px 15px}
+  .assignment-row{flex-direction:column}
+}

@@ -1,126 +1,118 @@
-# vinext-starter
+## DeepSeek 本地接入
 
-A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
+本地 `.dev.vars` 设置 `AI_PROVIDER=deepseek`、`DEEPSEEK_API_KEY` 和 `DEEPSEEK_MODEL=deepseek-flash`。密钥只在服务端读取，该文件已被 Git 忽略；勿将真实密钥放入示例、源码或浏览器。更换密钥后重启本地服务。也可选择 `AI_PROVIDER=openai` 并填写原有 OpenAI 配置。服务商显式选择后不会自动使用另一家的密钥。
 
-## Prerequisites
+通过 DeepSeek 官方 `https://api.deepseek.com/responses` 接入参考解答、文字/图片批改和订正问答；保留 JSON 结构校验、分数扣分一致性校验和教师审核。当前 `deepseek-flash` 支持图片，`deepseek-v4-pro` 配置只开放文字请求，图片请求会明确拒绝。模型能力以官方当前文档为准：https://api-docs.deepseek.com/guides/responses_api/ 。
 
-- Node.js `>=22.13.0`
-- Portable: Windows, macOS, or Linux; no Bash required
-- Managed Linux: managed Linux runtime with Bash, `flock`, `curl`, `sha256sum`, and GNU `timeout`
-- Git is required only for publishing
+2026-10-26 已完成真实小规模文字与图片调用：虚构算式 `2+2=5` 被批为 0/10 并返回页码/行号。该结果仅验证集成，不代表手写识别或复杂数学批改准确率。账户余额不足、密钥失效或网络失败时不会生成假分数。
 
-## Sites Lifecycle
+`node scripts/test-ai.mjs` 使用模拟响应、不消耗 API 额度；`node scripts/test-deepseek-live.mjs` 会向 DeepSeek 发送两次真实请求，仅使用仓库内的虚构算术图片，不含学生数据，会消耗少量 API 额度。
 
-The Sites initializer copies the shared starter and selects managed-linux only when `SITES_MANAGED_LINUX_CONTAINER=1`; otherwise it selects portable. It saves the selection only in ignored `.sites-runtime/execution-profile.json`. Both profiles copy/configure first, then use the plugin's separate `install-dependencies.mjs` step to measure installation independently. Edit source under `app/` and follow the Sites skill for installation, preview, builds, and publishing.
+## 2026-10-24 班级与学生名单流程
 
-Run `node <plugin-root>/scripts/configure-execution-profile.mjs` only when the profile is unknown for the current checkout and environment. Profile changes do not alter tracked source or require reinstalling otherwise-valid dependencies; restart an existing preview to use the new selection. Do not commit or upload `.sites-runtime/`.
+- 学生入口 `/student`，教师入口 `/teacher`，身份由服务器核验；教师注册后由管理员审核。
+- 教师直接创建班级（自动关联课堂，无需先创建课程），获得班级名称与 10 位邀请码。
+- 班级卡片的「导入 / 查看学生名单」支持 UTF-8 CSV/TXT 或粘贴，每行 `学号,姓名`，可带表头，每次最多 200 人。学号必须是 6–40 位数字，保留前导零。
+- 导入开通学生账号：账号=学号，昵称=姓名，初始密码=学号后六位。首次登录必须设置至少 12 位新密码并保存恢复码。重复导入不会重置密码；姓名冲突或重复学号会中止本批导入。
+- 学生输入邀请码申请加入；只有名单中的学生可以申请。教师端每 15 秒刷新加入提示，可查看、审核成员及学生历次作业详情。学生无法自行修改名单姓名和学号。
+- 教师发布 Markdown / LaTeX 题目（支持 `$...$`、`$$...$$`、`\(...\)`、`\[...\]`），截止时间由服务器固定为发布时间后 7×24 小时。教师仍可选择允许补交。
+- 发布时调用已配置的 AI 独立计算参考解答，仅教师可见、待教师核查。失败或未配置不会阻止发布，详情页可重试。参考解答不自动替代人工评分标准。
+- 学生与教师成绩册显示历次作业得分及 SUM；SUM 直接累加教师最终确认的得分，待批改/订正分数不计入。同时保留原有加权百分制阶段成绩及 CSV 导出。
 
-This starter does not use `wrangler.jsonc`.
+本轮已对本地数据执行一次备份清空，保留账号。备份位于忽略目录 `.sites-runtime/backups/2026-10-24T08-40-22-557Z-clear-teaching`。该操作没有修改线上数据库。照片原对象保留用于恢复，业务引用已清除。
 
-`install:ci` runs `npm ci` once against the shared lockfile, disables parent-workspace discovery, and includes required dev/optional dependencies despite production/omit settings. Sharp defaults to prebuilt binaries unless explicitly configured otherwise. Do not overlap installers.
+验证：`npm run test:campus`（含模拟 AI 解答）、`npm run test:ai`、`npm run test:merge`、`npm run typecheck`、`npm run build`；本地服务启动后可运行 `npm run test:classroom:http`，该检查自动清理自己创建的数据。旧版 `test:legacy-campus:http` 针对旧入班规则，不适用于名单限定流程。
 
-- **Portable:** Preserve host HOME, npm cache, registry, proxy, temporary paths, retry/concurrency settings, and lifecycle-script policy. Use `--prefer-offline --no-audit --no-fund`.
-- **Managed Linux:** Use the existing project-local HOME/cache/tmp setup and Linux install lock, tarball preflight, and timeout. Restore the image-seeded npm cache only when its lockfile hash matches; retain network fallback. Builds keep their existing timeout. These helpers are not invoked by the portable profile.
+# AI2Check · 数研 MathFlow
 
-`scripts/sites-env.mjs` preserves the caller's HOME, npm cache, proxy, XDG, and temporary-directory configuration while defaulting Wrangler and Miniflare state to the checkout. If npm reports an unwritable cache, select a writable path with `npm_config_cache` for that install. The `dev` and `start` scripts also keep Wrangler logs inside the checkout. Generated `.sites-runtime/` and `.wrangler/` directories are disposable and ignored by Git.
+两个项目已整合为这一份代码、一个安装目录、一套运行服务与一个统一教学入口。
 
-On portable, `npm run dev` uses `vinext dev` with HMR, starting at port 5173. Vinext records the running server in ignored `.vinext/` state, rejects an ordinary duplicate launch, and recovers stale state after a stopped process; exactly simultaneous starts can race. Pass `--port <port>` or `--hostname <host>` after `npm run dev --` when needed; keep portable previews on loopback.
+- `http://localhost:5173/`：独立账号登录、注册及恢复；登录后按服务端身份显示教师、学生或管理员工作台。
+- `/teacher`、`/student` 和原课程链接：进入同一套工作台。
+- `/welcome`：平台介绍。
+- `/demo`：保留原项目的个人试用版，标明虚构示例，与正式班级数据分开。
 
-For browser QA on managed Linux, use `sites-preview start`. The project's dev script runs Vite and accepts the supervisor's `--host 0.0.0.0 --port 4173 --strictPort` arguments. The internal browser uses `http://terminal.local:4173/`; it is not a user-facing URL. The supervisor owns the preview lifecycle. The ignored local profile survives the supervisor's cleared process environment.
+## 合并后的功能
 
-The portable profile simulates ChatGPT sign-in only for loopback development requests. Visit `/signin-with-chatgpt?return_to=/` to sign in as `local_seedy` (`seedy@sites.test`, display name `Seedy`) and `/signout-with-chatgpt?return_to=/` to sign out. The development cookie preserves that identity across server restarts. Mock auth is disabled in the managed-linux profile and is not included in production builds; hosted authentication remains dispatch-owned.
+教师创建课程和教学班，分享10位班级码，审核学生入班，再发布题目、评分标准、截止时间、满分、权重及补交规则。教师身份由管理员审核；注册不能自行获得教师或管理员权限。
 
-The Worker uses `vinext/server/fetch-handler`, including Vinext's config-aware image handling. After building, `npm start` runs that Worker locally through Wrangler on `127.0.0.1`, sharing `.wrangler/state` with dev preview and local D1 migrations; it does not deploy the site or simulate sign-in. Use the URL printed by the server. Pass `npm start -- --port <port>` to select a different built-preview port.
+学生使用独立账号，无需ChatGPT账号。每份作业可提交文字或最多10张照片，每张8MB内；可查看教师反馈、退回订正、再次提交及完整历史。
 
-Local previews use Miniflare's placeholder `Request.cf` metadata without a network lookup. Set `CLOUDFLARE_CF_FETCH_ENABLED=true` to opt into fetching preview metadata; this setting does not change hosted request metadata.
+配置OpenAI服务端密钥与模型后，可获得逐题建议分、页码与行号定位、原图错误框、订正提示、辅导问答以及巩固/提高/拓展题。AI照片输入总大小不超过16MB；文字作答也可批改。未配置或失败时保留提交，支持重试与人工审核。AI建议分与教师定稿分分开存储，正式统计只使用已定稿分。
 
-Local tool usage metrics are disabled by default. Set `WRANGLER_SEND_METRICS=true` to opt in.
+全对为满分、全错为零分、其余为部分正确。平时分先按各轮满分归一化，再按权重汇总；未提交、待批改和退回订正不自动记零，阶段均分与批改进度一起显示。支持CSV导出。
 
-## Included Shape
+## 本地启动
 
-- edit site code under `app/`
-- `app/chatgpt-auth.ts` provides optional dispatch-owned ChatGPT sign-in helpers
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
-- `db/schema.ts` starts intentionally empty
-- `@cloudflare/workers-types` provides Worker types; `cloudflare-env.d.ts` declares optional `DB`/`BUCKET` bindings—update these declarations if binding names change
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+Node.js >=22.13。当前目录依赖和数据库已就绪：
 
-## Workspace Auth Headers
-
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
-
-The user ID is stable for the same user on the same Site and different across Sites. Use it as the durable user key; use email and name for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive `oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty `name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by `oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```powershell
+node scripts/run-framework.mjs dev
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+新电脑先安装、启动，再在另一终端初始化数据库：
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs optional or required ChatGPT sign-in:
-
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use the returned `userId` as the stable user key for user-owned records; do not use email as a durable identifier.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send anonymous visitors through Sign in with ChatGPT.
-- In a Server Component, start sign-in with `<a href={chatGPTSignInPath(returnTo)} target="_top">`. The auth helper module is server-only; do not import it into a Client Component.
-- Do not use `fetch`, XHR, a client-side router, or a framework link that can prefetch the sign-in route. SIWC must start as a top-level navigation.
-- Never request the AuthAPI authorization endpoint directly. The dispatch-owned `/signin-with-chatgpt` route must start the SIWC flow.
-- Use `chatGPTSignOutPath(returnTo)` for browser sign-out links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the OAuth cookies, and identity header injection. Do not implement app routes for those reserved paths. Routes that do not import and call the helper remain anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the Sites hosting platform's access policy controls for workspace-wide restrictions, or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Local D1 migrations
-
-For a D1-backed local preview, generate SQL with `npm run db:generate`. Build once through the Sites skill's build entrypoint (or `npm run build` for standalone use) to generate `dist/server/wrangler.json`, rebuilding if bindings change. From the project root, apply each pending migration in order:
-
-```sh
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_example.sql
+```powershell
+npm run install:ci
+node scripts/run-framework.mjs dev
+# 在另一终端运行
+node scripts/setup-local.mjs
 ```
 
-Replace the filename with the pending migration and `DB` with your D1 binding name if different. Use `.wrangler/state`, not `.wrangler/state/v3`; Wrangler adds the versioned directories. Do not replay migrations already applied locally. This updates only the preview database; publishing applies production migrations separately.
+本机若npm命令路径异常，使用 `node 'C:/Program Files/nodejs/node_modules/npm/bin/npm-cli.js' run install:ci`。
 
-## Diagnostic Commands
+## 账号与模型配置
 
-- `npm run install:ci`: perform the one locked dependency install
-- `npm run dev`: start the Vite/Vinext development server
-- `npm run build`: build the deployable Sites artifact
-- `npm run start`: preview the built Worker locally with D1/R2 support
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+复制 `.dev.vars.example` 为 `.dev.vars`，配置 `OPENAI_API_KEY`、账户可用且支持图片和结构化输出的 `OPENAI_MODEL`，然后重启。密钥只由服务端读取，该文件已被Git排除。调用路径沿用 [图片输入](https://developers.openai.com/api/docs/guides/images-vision) 和 [结构化输出](https://developers.openai.com/api/docs/guides/structured-outputs) 官方接口。
 
-When using the Sites plugin, follow its skill instructions for installation, builds, and publishing. These npm commands remain available for standalone use.
+普通师生在首页注册。教师在“账号设置”申请，管理员核实后通过。`ADMIN_EMAIL` 指定可信ChatGPT身份的所有者邮箱；网站所有者在登录页“网站所有者入口”验证身份，再启用管理账号。正式环境必须填写真实所有者邮箱，本地默认允许模拟 `teacher@sites.test` 身份。
 
-The portable build runs Vinext directly without a host `timeout` command. The managed-linux build uses `scripts/build-verified.sh` and its existing `SITES_BUILD_TIMEOUT` setting.
+原AI2Check账号的课程和成绩已迁移。在登录页展开“网站所有者入口”，先验证原ChatGPT身份，再点“接续已迁移的原账号与课程”。本地教师身份验证地址：`/signin-with-chatgpt?as=teacher&return_to=/`，学生为 `as=student_a`。该模拟身份仅限开发。
 
-## Learn More
+源项目已有的独立账号及密码哈希已在本机导入，使用原用户名和密码登录。原登录会话未导入，需重新登录。恢复码仅在注册或恢复时显示一次，服务端不存明文密码和恢复码。
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+本地库包含开发和验收测试数据，预览中的示例姓名及分数不代表真实学生成绩。
+
+## 数据合并与维护
+
+来源为 `C:/Users/HP/Desktop/自主批改作业/mathflow`，原目录保持原状。相同公共组件去重；账号、班级、审批、提交历史与补交流程接入原AI2Check的AI批改和订正能力。详细清单见 [项目合并报告](docs/项目合并报告.md)。
+
+两套旧数据库存在同名但结构不同的表。新平台使用 `campus_*` 表，原表作为兼容与历史数据保留；`0003`至`0005`是增量迁移。原AI2Check课程、成员、作业、定稿分、AI载荷及订正记录已复制到统一模型，原图通过存储路径映射读取。新操作统一使用 `/api/account`、`/api/campus` 及其子接口。
+
+源项目的本地独立账号、课程、班级、成员、作业、提交及历史、照片也已导入。导入前的数据库备份在忽略的 `.sites-runtime/backups/`；本地数据库、照片、会话、缓存和密钥不会进入Git。
+
+再次导入旧本地项目需先停止本地服务，再运行：
+
+```powershell
+node scripts/import-campus-local.mjs 'C:/Users/HP/Desktop/自主批改作业/mathflow'
+```
+
+导入只读源目录、先备份目标、遇到同编号且内容不同的记录会停止，不覆盖新改动；会话和限流计数不导入。该脚本针对本地D1/R2，不能用于线上数据库。
+
+## 验证
+
+```powershell
+node node_modules/typescript/bin/tsc --noEmit
+node scripts/test-campus.mjs
+node tests/merge-migration.test.mjs
+node scripts/test-ai.mjs
+node tests/http-smoke.mjs
+node scripts/run-framework.mjs build
+```
+
+HTTP测试需要启动本地服务，创建独立的本地测试账号及作业。其余测试使用内存SQLite或合成AI响应，不调用付费模型。原 `scripts/test-workflow.mjs`、`test-security.mjs` 和 `test-pages.mjs` 保留为旧接口/旧界面的回归参考，不是新版页面验收脚本。GitHub检查包含类型检查、账号班级测试、迁移测试、AI契约和生产构建。
+
+## 主要代码
+
+| 功能 | 位置 |
+| --- | --- |
+| 统一账号及师生工作台 | `app/campus.tsx`、`app/campus.css` |
+| 身份、班级、审批与提交历史 | `lib/campus.ts`、`lib/campus-service.ts` |
+| 图片批改和评分校验 | `app/grader.ts`、`app/ai/`、`lib/campus-ai.ts` |
+| 原图反馈与订正问答 | `app/shared/`、`app/api/campus/tutor/` |
+| 统一数据库结构 | `db/campus-schema.ts`、`drizzle/` |
+| 原个人试用版 | `app/demo/`、`app/workspace.tsx`、`db/demo-store.ts` |
+
+目前未配置真实模型，未实测手写识别精度。服务端接口、权限、迁移与本地流程已验证。正式使用仍需用教师已批改的作业检验识别、定位及评分偏差。
+
+本次为本地项目与Git仓库合并，未修改旧站线上数据。两个旧项目曾沿用同一Sites项目ID但数据库迁移谱系不同；上线前需核对线上真实表结构和已应用迁移，不能将本地合并通过视作线上已更新。

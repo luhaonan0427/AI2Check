@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
+import {readFileSync} from 'node:fs';
+import {randomUUID} from 'node:crypto';
+const db=new DatabaseSync(':memory:');
+for(const name of ['0000_lyrical_killer_shrike','0001_teaching_platform','0002_tutor_messages'])db.exec(readFileSync('drizzle/'+name+'.sql','utf8'));
+const teacher=randomUUID(),student=randomUUID(),course=randomUUID(),a1=randomUUID(),a2=randomUUID(),photo=randomUUID(),sub=randomUUID(),time='2026-10-01T00:00:00Z';
+for(const [id,role] of [[teacher,'teacher'],[student,'student']])db.prepare('INSERT INTO users VALUES(?,?,?,?,?)').run(id,role,role,role+'@test.invalid',time);
+db.prepare('INSERT INTO courses VALUES(?,?,?,?,?,?,?)').run(course,teacher,'数学分析','M101','2026秋','ABC123',time);
+db.prepare('INSERT INTO enrollments VALUES(?,?,?,?,?,?)').run(randomUUID(),course,student,'S001','active',time);
+for(const a of [a1,a2])db.prepare('INSERT INTO assignments VALUES(?,?,?,?,?,?,?,?,?,?,?)').run(a,course,'极限',null,'2026-10-20T23:59',100,1,'1. 求极限','教师参考',1,time);
+for(const [sid,a] of [[sub,a1],[randomUUID(),a2]])db.prepare('INSERT INTO submissions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(sid,a,course,student,'student','S001',JSON.stringify([photo]),'approved',75,'{"score":75}',80,'最终反馈','部分正确',teacher,time,time);
+db.prepare('INSERT INTO tutor_messages VALUES(?,?,?,?,?,?)').run(randomUUID(),sub,student,'订正','{}',time);
+for(const name of ['0003_campus_platform','0004_campus_ai','0005_bridge_existing_data'])db.exec(readFileSync('drizzle/'+name+'.sql','utf8'));
+assert.equal(db.prepare('SELECT count(*) n FROM users').get().n,2);
+assert.equal(db.prepare('SELECT count(*) n FROM campus_accounts').get().n,2);
+assert.equal(db.prepare('SELECT number FROM campus_accounts WHERE id=?').get(student).number,'S001');
+const classes=db.prepare('SELECT * FROM campus_classes').all();assert.match(classes[0].code,/^[A-F0-9]{10}$/);
+const merged=db.prepare('SELECT * FROM campus_submissions').all();assert.equal(merged.length,2);
+assert.equal(merged[0].score,80);assert.equal(merged[0].ai_score,75);assert.equal(merged[0].ai_payload,'{"score":75}');
+assert.equal(db.prepare('SELECT count(*) n FROM campus_tutor_messages').get().n,1);
+const uploads=db.prepare('SELECT * FROM campus_uploads').all();assert.equal(uploads.length,2);assert.notEqual(uploads[0].id,uploads[1].id);
+for(const entry of merged){const file=JSON.parse(entry.files)[0];const upload=uploads.find(u=>u.id===file);assert(upload);assert.equal(upload.assignment_id,entry.assignment_id);assert.equal(upload.storage_key,student+'/'+photo);}
+db.prepare('UPDATE campus_submissions SET score=90 WHERE id=?').run(a1+':'+student);
+assert.equal(db.prepare('SELECT final_score FROM submissions WHERE id=?').get(sub).final_score,80);
+console.log('PASS MERGE: original records retained, role/course/score/AI/tutor data copied, shared photos isolated per assignment, original storage paths preserved.');
+db.close();

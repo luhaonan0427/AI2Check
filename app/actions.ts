@@ -3,7 +3,7 @@ import {category,courses,students,type Store,type Submission} from './data';
 export const actionSchema=z.discriminatedUnion('action',[
  z.object({action:z.literal('create'),course:z.enum(['analysis','algebra','probability']),title:z.string().trim().min(1).max(100),chapter:z.string().trim().max(100),due:z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),max:z.number().min(1).max(1000),weight:z.number().positive().max(100),questions:z.string().trim().min(1).max(10000),rubric:z.string().trim().min(1).max(10000)}),
  z.object({action:z.literal('review'),id:z.string().max(100),score:z.number().min(0),feedback:z.string().trim().min(1).max(5000)}),
- z.object({action:z.literal('submit'),assignment:z.string().max(100),number:z.string().max(30),files:z.array(z.string().uuid()).min(1).max(5)}),
+ z.object({action:z.literal('submit'),assignment:z.string().max(100),number:z.string().max(30),files:z.array(z.string().uuid()).min(1).max(10)}),
 ]);
 export type Action=z.infer<typeof actionSchema>;
 export function applyAction(current:Store,raw:unknown):Store{const input=actionSchema.parse(raw);const data=structuredClone(current);

@@ -1,12 +1,13 @@
 // Disposable accounts and records in localhost only. Never point this at production.
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
+import {DatabaseSync} from 'node:sqlite';
+import {readdirSync} from 'node:fs';
 const base='http://localhost:5173';
 const suffix=Date.now().toString(36),password='Local-test-only-2026!';
 async function request(path,body,cookie='',expected=200){const r=await fetch(base+path,{method:body?'POST':'GET',headers:{Origin:base,...(body?{'Content-Type':'application/json'}:{}),Cookie:cookie},body:body?JSON.stringify(body):undefined});const d=await r.json();assert.equal(r.status,expected,JSON.stringify(d));return {d,cookie:r.headers.get('set-cookie')?.split(';')[0]||cookie}}
 async function register(label){const a=await request('/api/account',{action:'register',username:'qa_'+label+'_'+suffix,password,name:'测试'+label,number:'QA-'+label});const me=await request('/api/account',null,a.cookie);assert(!JSON.stringify(me.d).includes('password'));return {...a,user:me.d.user}}
 const teacher=await register('teacher'),student=await register('student'),other=await register('other');
-execFileSync(process.execPath,['--import','./scripts/sites-env.mjs','./node_modules/wrangler/bin/wrangler.js','d1','execute','DB','--local','--config','dist/server/wrangler.json','--persist-to','.wrangler/state','--command',`UPDATE accounts SET role='teacher' WHERE id='${teacher.user.id}'`],{stdio:'pipe'});
+const dbPath='.wrangler/state/v3/d1/miniflare-D1DatabaseObject';const candidates=readdirSync(dbPath).filter(x=>x.endsWith('.sqlite')&&!x.startsWith('metadata'));assert.equal(candidates.length,1);const qaDb=new DatabaseSync(dbPath+'/'+candidates[0]);qaDb.prepare("UPDATE campus_accounts SET role='teacher' WHERE id=?").run(teacher.user.id);qaDb.close();
 const act=(actor,b,code=200)=>request('/api/campus',b,actor.cookie,code);
 await act(student,{action:'createCourse',title:'Forbidden',term:'T',description:''},403);
 await act(teacher,{action:'createCourse',title:'数学分析 · 本地验收',term:'2026 秋季',description:'仅用于本地端到端测试，不会出现在正式网站。'});
@@ -38,4 +39,3 @@ const reset=await request('/api/account',{action:'recover',username:other.user.u
 await request('/api/account',{action:'login',username:other.user.username,password},'',401);
 await request('/api/account',{action:'login',username:other.user.username,password:'New-local-test-2026!'});
 console.log('PASS HTTP: registration, real D1/R2, class admission, photo ownership, grade history, correction, stale grade, CSRF, logout and recovery.');
-console.log('Local-only QA teacher: '+teacher.user.username+' / '+password);

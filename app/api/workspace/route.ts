@@ -1,5 +1,5 @@
 import {getChatGPTUser} from '@/app/chatgpt-auth';
-import {load,save} from '@/db/store';
+import {load,save} from '@/db/demo-store';
 import {applyAction,actionSchema} from '@/app/actions';
 import {env} from 'cloudflare:workers';
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}});

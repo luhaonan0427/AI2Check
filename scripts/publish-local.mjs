@@ -1,7 +1,7 @@
 // Fallback for this checkout when the installed Sites workflow helper is unavailable.
 // Accept credentials only from hidden stdin. Never write credentials to disk or Git config.
 import {spawnSync} from 'node:child_process';
-import {existsSync,readFileSync} from 'node:fs';
+import {existsSync,readFileSync,readdirSync} from 'node:fs';
 import path from 'node:path';
 const root=process.cwd();const manifest=JSON.parse(readFileSync('.openai/hosting.json','utf8'));
 if(process.stdin.isTTY)process.stdin.setRawMode(true);
@@ -12,7 +12,12 @@ function run(command,args,env=process.env){if(command==='git')args=['-c','safe.d
 run(process.execPath,['node_modules/typescript/bin/tsc','--noEmit']);
 run(process.execPath,['scripts/run-framework.mjs','build']);
 if(!existsSync('dist/server/index.js'))throw new Error('Missing Worker build');
-if(!existsSync('dist/.openai/drizzle/0000_lyrical_killer_shrike.sql'))throw new Error('Missing database migration');
+// 必须校验「全部」迁移都在产物里：只查某一个文件名的话，新增的表结构
+// （例如 0001_teaching_platform.sql）漏掉也能通过，线上就会缺表。
+const migrationDir='dist/.openai/drizzle';
+const sourceMigrations=readdirSync('drizzle').filter(name=>name.endsWith('.sql')).sort();
+if(!sourceMigrations.length)throw new Error('No database migrations found in drizzle/');
+for(const name of sourceMigrations){if(!existsSync(path.join(migrationDir,name)))throw new Error(`Missing database migration in build: ${name}`);}
 if(!existsSync('.git'))run('git',['init','-b','main']);
 run('git',['config','user.name','MathFlow Builder']);run('git',['config','user.email','mathflow-builder@users.noreply.local']);
 const remotes=run('git',['remote']);if(!remotes.split('\n').includes('origin'))run('git',['remote','add','origin',credential.remote_url]);
